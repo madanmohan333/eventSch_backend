@@ -3,10 +3,11 @@ const router = express.Router();
 const Event = require("../models/events");
 const fetchuser = require("../middlewares/fetchuser");
 const User = require("../models/user");
+const authorizeRole = require("../middlewares/authrole");
 // Middleware to verify the auth token
 
 // Create event route
-router.post("/createevent", fetchuser, async (req, res) => {
+router.post("/createevent", fetchuser,authorizeRole("organiser"), async (req, res) => {
   try {
     const {
       title,
@@ -62,7 +63,7 @@ router.get("/events", fetchuser, async (req, res) => {
 });
 
 //Update event Status
-router.put("/updateeventstatus/:id", fetchuser, async (req, res) => {
+router.put("/updateeventstatus/:id", fetchuser,authorizeRole("organiser"), async (req, res) => {
   const { isActive } = req.body;
   let success = false;
   try {
@@ -82,7 +83,7 @@ router.put("/updateeventstatus/:id", fetchuser, async (req, res) => {
 });
 
 //Update events
-router.put("/updateevent/:id", fetchuser, async (req, res) => {
+router.put("/updateevent/:id", fetchuser,authorizeRole("organiser"), async (req, res) => {
   const {
     title,
     description,
@@ -143,7 +144,7 @@ router.put("/updateevent/:id", fetchuser, async (req, res) => {
 
 // Route: POST /api/createtask/:id
 // Description: Create a new task for an event
-router.post("/createtask/:id", async (req, res) => {
+router.post("/createtask/:id",fetchuser,authorizeRole("organiser"), async (req, res) => {
   try {
     const eventId = req.params.id;
     const { description } = req.body;
@@ -170,7 +171,7 @@ router.post("/createtask/:id", async (req, res) => {
 
 // Route: PUT /api/edittask/:eventId/:taskId
 // Description: Edit a task within an event
-router.put("/edittask/:eventId/:taskId", async (req, res) => {
+router.put("/edittask/:eventId/:taskId",fetchuser,authorizeRole("organiser"), async (req, res) => {
   try {
     const { eventId, taskId } = req.params;
     const { description, completed } = req.body;
@@ -206,7 +207,7 @@ router.put("/edittask/:eventId/:taskId", async (req, res) => {
 });
 
 //delete an event
-router.delete("/deletevent/:id", fetchuser, async (req, res) => {
+router.delete("/deletevent/:id", fetchuser,authorizeRole("organiser"), async (req, res) => {
   let success = false;
   try {
     // Find the note to be delete and delete it
@@ -249,7 +250,7 @@ router.get("/searchevent/:search", fetchuser, async (req, res) => {
 
 //Route for updating existing collaborators details if they were updated
 
-router.put("/updatecollaborators/:id", fetchuser, async (req, res) => {
+router.put("/updatecollaborators/:id", fetchuser,authorizeRole("organiser"), async (req, res) => {
   let success = false;
   try {
     const event = await Event.findById(req.params.id);
@@ -282,5 +283,14 @@ router.put("/updatecollaborators/:id", fetchuser, async (req, res) => {
   }
 });
 
+//This allows normal users to browse events.
+router.get("/allevents", fetchuser, async (req, res) => {
+  try {
+    const events = await Event.find({ isActive: true });
+    res.json(events);
+  } catch (error) {
+    res.status(500).json({ message: "Internal Server Error" });
+  }
+});
 
 module.exports = router;
