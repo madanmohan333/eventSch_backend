@@ -53,16 +53,22 @@ router.post(
         email: req.body.email,
         password: secPass,
         photo: "defaultUpload.png",
+        role: req.body.role || "user",
       });
       const data = {
         user: {
           id: user.id,
+          role:user.role,
         },
       };
       const authtoken = jwt.sign(data, JWT_SECRET);
       success = true;
       // res.json(user)
-      res.json({ success, authtoken });
+      res.json({ 
+        success,
+        authtoken,
+        role:user.role
+      });
     } catch (error) {
       console.error(error.message);
       res.status(500).send("Internal Server Error");
@@ -107,11 +113,16 @@ router.post(
       const data = {
         user: {
           id: user.id,
+          role:user.role,
         },
       };
       const authtoken = jwt.sign(data, JWT_SECRET);
       success = true;
-      res.json({ success, authtoken });
+      res.json({ 
+        success, 
+        authtoken, 
+        role:user.role
+      });
     } catch (error) {
       console.error(error.message);
       res.status(500).send("Internal Server Error");
