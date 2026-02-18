@@ -4,6 +4,7 @@ const Event = require("../models/events");
 const fetchuser = require("../middlewares/fetchuser");
 const User = require("../models/user");
 const authorizeRole = require("../middlewares/authrole");
+const Registration = require("../models/registration");
 // Middleware to verify the auth token
 
 // Create event route
@@ -292,5 +293,71 @@ router.get("/allevents", fetchuser, async (req, res) => {
     res.status(500).json({ message: "Internal Server Error" });
   }
 });
+
+//register event ||for user only
+
+router.post(
+  "/register/:eventId",
+  fetchuser,
+  authorizeRole("user"),
+  async (req, res) => {
+    try {
+      const userId = req.user.id;
+      const eventId = req.params.eventId;
+
+      // Check if event exists
+      const event = await Event.findById(eventId);
+      if (!event) {
+        return res.status(404).json({ message: "Event not found" });
+      }
+
+      // Prevent duplicate registration
+      const alreadyRegistered = await Registration.findOne({
+        user: userId,
+        event: eventId,
+      });
+
+      if (alreadyRegistered) {
+        return res.status(400).json({ message: "Already registered" });
+      }
+
+      // Create registration
+      await Registration.create({
+        user: userId,
+        event: eventId,
+      });
+
+      // Increase registration count
+      event.totalRegistrations += 1;
+      await event.save();
+
+      res.json({ message: "Registered successfully" });
+    } catch (error) {
+      console.error(error);
+      res.status(500).json({ message: "Internal Server Error" });
+    }
+  }
+);
+
+//see registered events
+
+router.get(
+  "/myevents",
+  fetchuser,
+  authorizeRole("user"),
+  async (req, res) => {
+    try {
+      const registrations = await Registration.find({
+        user: req.user.id,
+      }).populate("event");
+
+      const events = registrations.map((r) => r.event);
+
+      res.json(events);
+    } catch (error) {
+      res.status(500).json({ message: "Internal Server Error" });
+    }
+  }
+);
 
 module.exports = router;
